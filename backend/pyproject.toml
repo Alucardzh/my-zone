@@ -1,0 +1,25 @@
+[project]
+name = "mynavi-backend"
+version = "1.0.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aerich>=0.9.1",
+    "aiofiles>=25.1.0",
+    "aiosqlite>=0.21.0",
+    "bcrypt<4",
+    "fastapi>=0.118.0",
+    "gunicorn>=23.0.0",
+    "httpx>=0.28.1",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic>=2.11.9",
+    "pydantic-settings>=2.11.0",
+    "python-dotenv>=1.1.1",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.20",
+    "tortoise-orm[asyncpg]>=0.25.1",
+    "uvicorn[standard]>=0.37.0",
+    "uvloop>=0.21.0 ; sys_platform != 'win32'",
+]
+

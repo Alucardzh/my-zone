@@ -1,0 +1,15 @@
+# PostgreSQL 数据库覆盖配置
+# 使用方式：docker-compose --profile postgres up -d
+# 或者：docker-compose -f docker-compose.yml -f docker-compose.postgres.yml up -d
+
+services:
+  # 为 db 服务移除 profile 限制
+  db:
+    profiles: []
+  
+  # 为 api 服务添加对 db 的依赖
+  api:
+    depends_on:
+      db:
+        condition: service_healthy
+

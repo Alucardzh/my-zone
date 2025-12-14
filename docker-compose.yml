@@ -1,0 +1,103 @@
+services:
+  db:
+    image: postgres:16
+    container_name: mynavi-db
+    restart: unless-stopped
+    # 使用 profile 控制启动：只有指定 postgres profile 时才启动
+    profiles:
+      - postgres
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    #ports:
+    #  - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - mynavi-network
+    volumes:
+      - ./depends/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: 192.168.3.10:5000/mynavi-api:latest
+    container_name: mynavi-api
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+    # 当使用 SQLite 时，不需要依赖 db 服务
+    # 当使用 PostgreSQL 时，需要在启动时指定 --profile postgres
+    ports:
+      - "${WEB_PORT:-80}:80"
+    volumes:
+      - ./depends/nginx/nginx-frontend.conf:/etc/nginx/conf.d/default.conf
+      # - ./backend/icons:/root/icons:ro
+      - ./frontend/dist:/usr/share/nginx/html:rw
+      - ./backend:/app
+      - ./depends/backend/docker-entrypoint.d:/docker-entrypoint.d
+      - .env:/root/.env
+    networks:
+      - mynavi-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    entrypoint : ["/docker-entrypoint.sh"]
+
+  # web:
+  #   image: nginx:alpine
+  #   container_name: mynavi-web
+  #   restart: unless-stopped
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - api
+  #   volumes:
+  #     - ./depends/nginx/nginx-frontend.conf:/etc/nginx/conf.d/default.conf
+  #     - ./backend/icons:/root/icons:ro
+  #     - ./frontend/dist:/usr/share/nginx/html:rw
+  #   ports:
+  #     - "${WEB_PORT:-80}:80"
+  #   networks:
+  #     - mynavi-network
+  #   command: ["nginx", "-g", "daemon off;"]
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+  searxng:
+    container_name: mynavi-searxng
+    image: docker.io/searxng/searxng:latest
+    restart: always
+    # 使用 profile 控制启动：只有指定 searxng profile 时才启动
+    profiles:
+      - searxng
+    env_file:
+      - .env
+    ports:
+      - "${SEARXNG_BIND_HOST:-0.0.0.0}:${SEARXNG_BIND_PORT:-8080}:8080"
+    volumes:
+      - ./depends/searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BIND_ADDRESS=${SEARXNG_BIND_HOST:-0.0.0.0}:${SEARXNG_BIND_PORT:-8080}
+      - BASE_URL=${SEARXNG_BASE_URL:-http://localhost:8080/}
+    networks:
+      - mynavi-network
+
+networks:
+  mynavi-network:
+    driver: bridge
+
